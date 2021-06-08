@@ -1,25 +1,31 @@
 # 1 "d:\\projects\\WeatherStationV2\\WeatherStationV2.ino"
-# 2 "d:\\projects\\WeatherStationV2\\WeatherStationV2.ino" 2
+/***************************
 
-# 4 "d:\\projects\\WeatherStationV2\\WeatherStationV2.ino" 2
+ * Library Includes 
+
+ **************************/
+# 4 "d:\\projects\\WeatherStationV2\\WeatherStationV2.ino"
 # 5 "d:\\projects\\WeatherStationV2\\WeatherStationV2.ino" 2
-# 6 "d:\\projects\\WeatherStationV2\\WeatherStationV2.ino" 2
+
 # 7 "d:\\projects\\WeatherStationV2\\WeatherStationV2.ino" 2
 # 8 "d:\\projects\\WeatherStationV2\\WeatherStationV2.ino" 2
 # 9 "d:\\projects\\WeatherStationV2\\WeatherStationV2.ino" 2
 
-// time
+# 11 "d:\\projects\\WeatherStationV2\\WeatherStationV2.ino" 2
 # 12 "d:\\projects\\WeatherStationV2\\WeatherStationV2.ino" 2
 # 13 "d:\\projects\\WeatherStationV2\\WeatherStationV2.ino" 2
 # 14 "d:\\projects\\WeatherStationV2\\WeatherStationV2.ino" 2
-
+# 15 "d:\\projects\\WeatherStationV2\\WeatherStationV2.ino" 2
 # 16 "d:\\projects\\WeatherStationV2\\WeatherStationV2.ino" 2
 # 17 "d:\\projects\\WeatherStationV2\\WeatherStationV2.ino" 2
-# 18 "d:\\projects\\WeatherStationV2\\WeatherStationV2.ino" 2
+
 # 19 "d:\\projects\\WeatherStationV2\\WeatherStationV2.ino" 2
 # 20 "d:\\projects\\WeatherStationV2\\WeatherStationV2.ino" 2
 # 21 "d:\\projects\\WeatherStationV2\\WeatherStationV2.ino" 2
 # 22 "d:\\projects\\WeatherStationV2\\WeatherStationV2.ino" 2
+# 23 "d:\\projects\\WeatherStationV2\\WeatherStationV2.ino" 2
+# 24 "d:\\projects\\WeatherStationV2\\WeatherStationV2.ino" 2
+# 25 "d:\\projects\\WeatherStationV2\\WeatherStationV2.ino" 2
 
 
 /***************************
@@ -27,7 +33,7 @@
  * Begin Settings
 
  **************************/
-# 28 "d:\\projects\\WeatherStationV2\\WeatherStationV2.ino"
+# 31 "d:\\projects\\WeatherStationV2\\WeatherStationV2.ino"
 // WIFI
 const char* WIFI_SSID = "Huawei";
 const char* WIFI_PWD = "qwertyui";
@@ -40,6 +46,8 @@ const int UPDATE_INTERVAL_SECS = 20 * 60; // Update every 20 minutes
 
 // Display Settings
 const int I2C_DISPLAY_ADDRESS = 0x3c;
+
+// Defined param I2_C bus
 
 const int SDA_PIN = 4;
 const int SDC_PIN = 5;
@@ -64,7 +72,7 @@ data for. It'll be a URL like https://openweathermap.org/city/2657896. The numbe
 at the end is what you assign to the constant below.
 
  */
-# 59 "d:\\projects\\WeatherStationV2\\WeatherStationV2.ino"
+# 64 "d:\\projects\\WeatherStationV2\\WeatherStationV2.ino"
 String OPEN_WEATHER_MAP_LOCATION_ID = "709717";
 
 // Pick a language code from this list:
@@ -89,7 +97,7 @@ const String MONTH_NAMES[] = {"JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "
  * End Settings
 
  **************************/
-# 81 "d:\\projects\\WeatherStationV2\\WeatherStationV2.ino"
+# 86 "d:\\projects\\WeatherStationV2\\WeatherStationV2.ino"
  // Initialize the oled display for address 0x3c
  // sda-pin=14 and sdc-pin=12
  SSD1306Wire display(I2C_DISPLAY_ADDRESS, SDA_PIN, SDC_PIN);
@@ -117,7 +125,7 @@ String lastUpdate = "1727";
 
 long timeSinceLastWUpdate = 0;
 
-//declaring prototypes
+//declaring prototypes 
 void drawProgress(OLEDDisplay *display, int percentage, String label);
 void updateData(OLEDDisplay *display);
 void drawDateTime(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int16_t y);
@@ -127,6 +135,8 @@ void drawForecastDetails(OLEDDisplay *display, int x, int y, int dayIndex);
 void drawHeaderOverlay(OLEDDisplay *display, OLEDDisplayUiState* state);
 void setReadyForWeatherUpdate();
 void drawBME280(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int16_t y);
+void measure_and_visible();
+void logs();
 
 // Add frames
 // this array keeps function pointers to all frames
@@ -137,11 +147,11 @@ int numberOfFrames = 4;
 OverlayCallback overlays[] = { drawHeaderOverlay };
 int numberOfOverlays = 1;
 
+char *measures[4];
+
 void setup() {
   Serial.begin(115200);
   Serial.println();
-  Serial.println();
-
   Serial.print("Initializing SD card...");
 
   if (!SD.begin(15)) {
@@ -152,12 +162,25 @@ void setup() {
 
   root = SD.open("/");
 
-  printDirectory(root, 0);
+  if (SD.exists("data.txt")) {
 
-  Serial.println("done!");
+    Serial.println("data.txt exists.");
+    Serial.println("Start logging.");
+    Serial.println();
+    Serial.println();
+  } else {
+
+  Serial.println("data.txt doesn't exist.");
+  Serial.println("Check directory");
+  printDirectory(root, 0);
+  Serial.println();
+  Serial.println();
+
+  }
 
   // initialize dispaly
   display.init();
+  //start clear display buffer and 
   display.clear();
   display.display();
 
@@ -167,7 +190,7 @@ void setup() {
   display.setContrast(255);
 
   WiFi.begin(WIFI_SSID, WIFI_PWD);
-
+// run animation for wifi connect
   byte counter = 0;
   while (WiFi.status() != WL_CONNECTED)
   {
@@ -183,6 +206,12 @@ void setup() {
     counter++;
   }
 
+/***************************
+
+ Param BME280
+
+ **************************/
+# 197 "d:\\projects\\WeatherStationV2\\WeatherStationV2.ino"
   //Set the I2C address of your breakout board  
   //Or ignore this, if you're using SPI Communication
 
@@ -267,6 +296,12 @@ void setup() {
   bme280.parameter.tempOutsideCelsius = 15; //default value of 15°C
   //bme280.parameter.tempOutsideFahrenheit = 59;           //default value of 59°F
 
+/***************************
+
+ OTA Update
+
+ **************************/
+# 285 "d:\\projects\\WeatherStationV2\\WeatherStationV2.ino"
   ArduinoOTA.onStart([]() {
   String type;
   if (ArduinoOTA.getCommand() == 0) {
@@ -301,6 +336,13 @@ void setup() {
   Serial.println("Ready");
   Serial.print("IP address: ");
   Serial.println(WiFi.localIP());
+
+  /***************************
+
+  Start OLED UI
+
+ **************************/
+# 324 "d:\\projects\\WeatherStationV2\\WeatherStationV2.ino"
   // Get time from network time service
   configTime(((3 /* (utc+) TZ in hours*/)*3600), ((0 /* use 60mn for summer time in some countries*/)*60), "pool.ntp.org");
 
@@ -335,37 +377,28 @@ void setup() {
 
 void measure_and_visible()
 {
-     Serial.print(((reinterpret_cast<const __FlashStringHelper *>((__extension__({static const char __c[] __attribute__((__aligned__(4))) __attribute__((section( "\".irom0.pstr." "WeatherStationV2.ino" "." "326" "." "21" "\", \"aSM\", @progbits, 1 #"))) = ("Duration in Seconds:\t\t"); &__c[0];}))))));
-   Serial.println(float(millis())/1000);
+    dtostrf(bme280.readTempC(),4,2,measures[0]);
+    dtostrf(bme280.readHumidity(),4,2,measures[1]);
+    dtostrf(bme280.readPressure(),6,2,measures[2]);
+    dtostrf(bme280.readAltitudeMeter(),6,2,measures[3]);
 
-   Serial.print(((reinterpret_cast<const __FlashStringHelper *>((__extension__({static const char __c[] __attribute__((__aligned__(4))) __attribute__((section( "\".irom0.pstr." "WeatherStationV2.ino" "." "329" "." "22" "\", \"aSM\", @progbits, 1 #"))) = ("Temperature in Celsius:\t\t"); &__c[0];}))))));
-   Serial.println(bme280.readTempC());
+   Serial.print(((reinterpret_cast<const __FlashStringHelper *>((__extension__({static const char __c[] __attribute__((__aligned__(4))) __attribute__((section( "\".irom0.pstr." "WeatherStationV2.ino" "." "363" "." "21" "\", \"aSM\", @progbits, 1 #"))) = ("Temperature in Celsius:\t\t"); &__c[0];}))))));
+   Serial.println(measures[0]);
 
-   Serial.print(((reinterpret_cast<const __FlashStringHelper *>((__extension__({static const char __c[] __attribute__((__aligned__(4))) __attribute__((section( "\".irom0.pstr." "WeatherStationV2.ino" "." "332" "." "23" "\", \"aSM\", @progbits, 1 #"))) = ("Temperature in Fahrenheit:\t"); &__c[0];}))))));
-   Serial.println(bme280.readTempF());
+   Serial.print(((reinterpret_cast<const __FlashStringHelper *>((__extension__({static const char __c[] __attribute__((__aligned__(4))) __attribute__((section( "\".irom0.pstr." "WeatherStationV2.ino" "." "366" "." "22" "\", \"aSM\", @progbits, 1 #"))) = ("Humidity in %:\t\t\t"); &__c[0];}))))));
+   Serial.println(measures[1]);
 
-   Serial.print(((reinterpret_cast<const __FlashStringHelper *>((__extension__({static const char __c[] __attribute__((__aligned__(4))) __attribute__((section( "\".irom0.pstr." "WeatherStationV2.ino" "." "335" "." "24" "\", \"aSM\", @progbits, 1 #"))) = ("Humidity in %:\t\t\t"); &__c[0];}))))));
-   Serial.println(bme280.readHumidity());
+   Serial.print(((reinterpret_cast<const __FlashStringHelper *>((__extension__({static const char __c[] __attribute__((__aligned__(4))) __attribute__((section( "\".irom0.pstr." "WeatherStationV2.ino" "." "369" "." "23" "\", \"aSM\", @progbits, 1 #"))) = ("Pressure in hPa:\t\t"); &__c[0];}))))));
+   Serial.println(measures[2]);
 
-   Serial.print(((reinterpret_cast<const __FlashStringHelper *>((__extension__({static const char __c[] __attribute__((__aligned__(4))) __attribute__((section( "\".irom0.pstr." "WeatherStationV2.ino" "." "338" "." "25" "\", \"aSM\", @progbits, 1 #"))) = ("Pressure in hPa:\t\t"); &__c[0];}))))));
-   Serial.println(bme280.readPressure());
-
-   Serial.print(((reinterpret_cast<const __FlashStringHelper *>((__extension__({static const char __c[] __attribute__((__aligned__(4))) __attribute__((section( "\".irom0.pstr." "WeatherStationV2.ino" "." "341" "." "26" "\", \"aSM\", @progbits, 1 #"))) = ("Altitude in Meters:\t\t"); &__c[0];}))))));
-   Serial.println(bme280.readAltitudeMeter());
-
-   Serial.print(((reinterpret_cast<const __FlashStringHelper *>((__extension__({static const char __c[] __attribute__((__aligned__(4))) __attribute__((section( "\".irom0.pstr." "WeatherStationV2.ino" "." "344" "." "27" "\", \"aSM\", @progbits, 1 #"))) = ("Altitude in Feet:\t\t"); &__c[0];}))))));
-   Serial.println(bme280.readAltitudeFeet());
+   Serial.print(((reinterpret_cast<const __FlashStringHelper *>((__extension__({static const char __c[] __attribute__((__aligned__(4))) __attribute__((section( "\".irom0.pstr." "WeatherStationV2.ino" "." "372" "." "24" "\", \"aSM\", @progbits, 1 #"))) = ("Altitude in Meters:\t\t"); &__c[0];}))))));
+   Serial.println(measures[3]);
 
    Serial.println();
-   Serial.println();
-
-   delay(1000);
-
 }
 
 void printDirectory(File dir, int numTabs) {
   while (true) {
-
     File entry = dir.openNextFile();
     if (! entry) {
       // no more files
@@ -376,7 +409,7 @@ void printDirectory(File dir, int numTabs) {
     }
     Serial.print(entry.name());
     if (entry.isDirectory()) {
-      Serial.println("/");
+      Serial.println(((reinterpret_cast<const __FlashStringHelper *>((__extension__({static const char __c[] __attribute__((__aligned__(4))) __attribute__((section( "\".irom0.pstr." "WeatherStationV2.ino" "." "390" "." "25" "\", \"aSM\", @progbits, 1 #"))) = ("/"); &__c[0];}))))));
       printDirectory(entry, numTabs + 1);
     } else {
       // files have sizes, directories do not
@@ -389,7 +422,7 @@ void printDirectory(File dir, int numTabs) {
 
 void loop()
 {
-
+//start OTA
   ArduinoOTA.handle();
 
   if (millis() - timeSinceLastWUpdate > (1000L*UPDATE_INTERVAL_SECS))
@@ -410,10 +443,25 @@ void loop()
     // You can do some work here
     // Don't do stuff if you are below your
     // time budget.
+//  Serial.println(millis());
     delay(remainingTimeBudget);
   }
+    if (millis() - timeSinceLastWUpdate > (1000*60*10))
+  {
+    timeSinceLastWUpdate = millis();
+    Serial.println(millis());
+    logs();
+  }
+  //update timers for logs
 }
 
+
+/***************************
+
+ * Draw progress update
+
+ **************************/
+# 441 "d:\\projects\\WeatherStationV2\\WeatherStationV2.ino"
 void drawProgress(OLEDDisplay *display, int percentage, String label)
 {
   display->clear();
@@ -424,6 +472,12 @@ void drawProgress(OLEDDisplay *display, int percentage, String label)
   display->display();
 }
 
+/***************************
+
+ * Update data and weather
+
+ **************************/
+# 455 "d:\\projects\\WeatherStationV2\\WeatherStationV2.ino"
 void updateData(OLEDDisplay *display)
 {
   drawProgress(display, 10, "Updating time...");
@@ -443,8 +497,12 @@ void updateData(OLEDDisplay *display)
   delay(1000);
 }
 
+/***************************
 
+ * draw Date && Time on widget 
 
+ **************************/
+# 478 "d:\\projects\\WeatherStationV2\\WeatherStationV2.ino"
 void drawDateTime(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int16_t y)
 {
   now = time(nullptr);
@@ -457,15 +515,21 @@ void drawDateTime(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, in
   display->setFont(ArialMT_Plain_10);
   String date = WDAY_NAMES[timeInfo->tm_wday];
 
-  sprintf_P(buff, (__extension__({static const char __c[] __attribute__((__aligned__(4))) __attribute__((section( "\".irom0.pstr." "WeatherStationV2.ino" "." "448" "." "28" "\", \"aSM\", @progbits, 1 #"))) = ("%s, %02d/%02d/%04d"); &__c[0];})), WDAY_NAMES[timeInfo->tm_wday].c_str(), timeInfo->tm_mday, timeInfo->tm_mon+1, timeInfo->tm_year + 1900);
+  sprintf_P(buff, (__extension__({static const char __c[] __attribute__((__aligned__(4))) __attribute__((section( "\".irom0.pstr." "WeatherStationV2.ino" "." "490" "." "26" "\", \"aSM\", @progbits, 1 #"))) = ("%s, %02d/%02d/%04d"); &__c[0];})), WDAY_NAMES[timeInfo->tm_wday].c_str(), timeInfo->tm_mday, timeInfo->tm_mon+1, timeInfo->tm_year + 1900);
   display->drawString(64 + x, 5 + y, String(buff));
   display->setFont(ArialMT_Plain_24);
 
-  sprintf_P(buff, (__extension__({static const char __c[] __attribute__((__aligned__(4))) __attribute__((section( "\".irom0.pstr." "WeatherStationV2.ino" "." "452" "." "29" "\", \"aSM\", @progbits, 1 #"))) = ("%02d:%02d:%02d"); &__c[0];})), timeInfo->tm_hour, timeInfo->tm_min, timeInfo->tm_sec);
+  sprintf_P(buff, (__extension__({static const char __c[] __attribute__((__aligned__(4))) __attribute__((section( "\".irom0.pstr." "WeatherStationV2.ino" "." "494" "." "27" "\", \"aSM\", @progbits, 1 #"))) = ("%02d:%02d:%02d"); &__c[0];})), timeInfo->tm_hour, timeInfo->tm_min, timeInfo->tm_sec);
   display->drawString(64 + x, 15 + y, String(buff));
   display->setTextAlignment(TEXT_ALIGN_LEFT);
 }
 
+/***************************
+
+ * draw current weather in second widget 
+
+ **************************/
+# 503 "d:\\projects\\WeatherStationV2\\WeatherStationV2.ino"
 void drawCurrentWeather(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int16_t y)
 {
   display->setFont(ArialMT_Plain_10);
@@ -482,7 +546,12 @@ void drawCurrentWeather(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t
   display->drawString(32 + x, 0 + y, currentWeather.iconMeteoCon);
 }
 
+/***************************
 
+ * draw forecast weather in third widget 
+
+ **************************/
+# 523 "d:\\projects\\WeatherStationV2\\WeatherStationV2.ino"
 void drawForecast(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int16_t y)
 {
   drawForecastDetails(display, x, y, 0);
@@ -490,6 +559,12 @@ void drawForecast(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, in
   drawForecastDetails(display, x + 88, y, 2);
 }
 
+/***************************
+
+ *  system display settings function for third widget
+
+ **************************/
+# 534 "d:\\projects\\WeatherStationV2\\WeatherStationV2.ino"
 void drawForecastDetails(OLEDDisplay *display, int x, int y, int dayIndex)
 {
   time_t observationTimestamp = forecasts[dayIndex].observationTime;
@@ -507,13 +582,19 @@ void drawForecastDetails(OLEDDisplay *display, int x, int y, int dayIndex)
   display->setTextAlignment(TEXT_ALIGN_LEFT);
 }
 
+/***************************
+
+ * draw line and time&&weather under line
+
+ **************************/
+# 555 "d:\\projects\\WeatherStationV2\\WeatherStationV2.ino"
 void drawHeaderOverlay(OLEDDisplay *display, OLEDDisplayUiState* state)
  {
   now = time(nullptr);
   struct tm* timeInfo;
   timeInfo = localtime(&now);
   char buff[14];
-  sprintf_P(buff, (__extension__({static const char __c[] __attribute__((__aligned__(4))) __attribute__((section( "\".irom0.pstr." "WeatherStationV2.ino" "." "504" "." "30" "\", \"aSM\", @progbits, 1 #"))) = ("%02d:%02d"); &__c[0];})), timeInfo->tm_hour, timeInfo->tm_min);
+  sprintf_P(buff, (__extension__({static const char __c[] __attribute__((__aligned__(4))) __attribute__((section( "\".irom0.pstr." "WeatherStationV2.ino" "." "561" "." "28" "\", \"aSM\", @progbits, 1 #"))) = ("%02d:%02d"); &__c[0];})), timeInfo->tm_hour, timeInfo->tm_min);
 
   display->setColor(WHITE);
   display->setFont(ArialMT_Plain_10);
@@ -525,6 +606,12 @@ void drawHeaderOverlay(OLEDDisplay *display, OLEDDisplayUiState* state)
   display->drawHorizontalLine(0, 52, 128);
 }
 
+/***************************
+
+ *  system display settings function for fourth widget
+
+ **************************/
+# 577 "d:\\projects\\WeatherStationV2\\WeatherStationV2.ino"
 void drawBME280(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int16_t y)
 {
 
@@ -532,7 +619,7 @@ void drawBME280(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int1
   struct tm* timeInfo;
   timeInfo = localtime(&now);
   char buff[14];
-  sprintf_P(buff, (__extension__({static const char __c[] __attribute__((__aligned__(4))) __attribute__((section( "\".irom0.pstr." "WeatherStationV2.ino" "." "523" "." "31" "\", \"aSM\", @progbits, 1 #"))) = ("%02d:%02d"); &__c[0];})), timeInfo->tm_hour, timeInfo->tm_min);
+  sprintf_P(buff, (__extension__({static const char __c[] __attribute__((__aligned__(4))) __attribute__((section( "\".irom0.pstr." "WeatherStationV2.ino" "." "584" "." "29" "\", \"aSM\", @progbits, 1 #"))) = ("%02d:%02d"); &__c[0];})), timeInfo->tm_hour, timeInfo->tm_min);
 
   display->setColor(WHITE);
   display->setFont(ArialMT_Plain_10);
@@ -546,8 +633,36 @@ void drawBME280(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int1
 
 }
 
+/***************************
+
+ * flag for update weather
+
+ **************************/
+# 602 "d:\\projects\\WeatherStationV2\\WeatherStationV2.ino"
 void setReadyForWeatherUpdate()
 {
   Serial.println("Setting readyForUpdate to true");
   readyForWeatherUpdate = true;
 }
+
+/***************************
+
+  start logs
+
+ **************************/
+# 612 "d:\\projects\\WeatherStationV2\\WeatherStationV2.ino"
+void logs()
+{
+  Serial.println("Logg status");
+  now = time(nullptr);
+  struct tm* timeInfo;
+  timeInfo = localtime(&now);
+  char buff[50];
+  sprintf_P(buff, (__extension__({static const char __c[] __attribute__((__aligned__(4))) __attribute__((section( "\".irom0.pstr." "WeatherStationV2.ino" "." "619" "." "30" "\", \"aSM\", @progbits, 1 #"))) = ("%s, %02d/%02d/%04d"); &__c[0];})), WDAY_NAMES[timeInfo->tm_wday].c_str(), timeInfo->tm_mday, timeInfo->tm_mon+1, timeInfo->tm_year + 1900,measures[0],measures[1],measures[2],measures[3]);
+
+  root = SD.open("data.txt",(sdfat::O_RDONLY | sdfat::O_WRONLY | sdfat::O_CREAT | sdfat::O_APPEND));
+  root.println("string tesst");
+  root.write(buff,45);
+  root.close();
+//print measures and time/
+  }

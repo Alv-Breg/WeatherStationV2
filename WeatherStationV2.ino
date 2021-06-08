@@ -1,13 +1,16 @@
+/***************************
+ * Library Includes 
+ **************************/
 #include <Arduino.h>
 
 #include <ESPWiFi.h>
 #include <ESPHTTPClient.h>
 #include <JsonListener.h>
+
 #include <BlueDot_BME280.h>
 #include <ArduinoOTA.h>
 #include <SD.h>
-
-// time
+#include <sdios.h>
 #include <time.h>                       // time() ctime()
 #include <sys/time.h>                   // struct timeval
 #include <coredecls.h>                  // settimeofday_cb()
@@ -37,7 +40,9 @@ const int UPDATE_INTERVAL_SECS = 20 * 60; // Update every 20 minutes
 
 // Display Settings
 const int I2C_DISPLAY_ADDRESS = 0x3c;
-#if defined(ESP8266)
+
+// Defined param I2_C bus
+#if defined(ESP8266) 
 const int SDA_PIN = 4;
 const int SDC_PIN = 5;
 #else
@@ -80,7 +85,7 @@ const String MONTH_NAMES[] = {"JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "
  **************************/
  // Initialize the oled display for address 0x3c
  // sda-pin=14 and sdc-pin=12
- SSD1306Wire     display(I2C_DISPLAY_ADDRESS, SDA_PIN, SDC_PIN);
+ SSD1306Wire     display(I2C_DISPLAY_ADDRESS, SDA_PIN, SDC_PIN); 
  OLEDDisplayUi   ui( &display );
 
 OpenWeatherMapCurrentData currentWeather;
@@ -105,7 +110,7 @@ String lastUpdate = "1727";
 
 long timeSinceLastWUpdate = 0;
 
-//declaring prototypes
+//declaring prototypes 
 void drawProgress(OLEDDisplay *display, int percentage, String label);
 void updateData(OLEDDisplay *display);
 void drawDateTime(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int16_t y);
@@ -115,6 +120,8 @@ void drawForecastDetails(OLEDDisplay *display, int x, int y, int dayIndex);
 void drawHeaderOverlay(OLEDDisplay *display, OLEDDisplayUiState* state);
 void setReadyForWeatherUpdate();
 void drawBME280(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int16_t y);
+void measure_and_visible();
+void logs();
 
 // Add frames
 // this array keeps function pointers to all frames
@@ -125,11 +132,11 @@ int numberOfFrames = 4;
 OverlayCallback overlays[] = { drawHeaderOverlay };
 int numberOfOverlays = 1;
 
+char *measures[4];
+
 void setup() {
   Serial.begin(115200);
   Serial.println();
-  Serial.println();
-
   Serial.print("Initializing SD card...");
 
   if (!SD.begin(15)) {
@@ -140,12 +147,25 @@ void setup() {
 
   root = SD.open("/");
 
-  printDirectory(root, 0);
+  if (SD.exists("data.txt")) {
 
-  Serial.println("done!");
+    Serial.println("data.txt exists.");
+    Serial.println("Start logging.");
+    Serial.println();
+    Serial.println();
+  } else {
+
+  Serial.println("data.txt doesn't exist.");
+  Serial.println("Check directory");
+  printDirectory(root, 0);
+  Serial.println();
+  Serial.println();
+
+  }
 
   // initialize dispaly
   display.init();
+  //start clear display buffer and 
   display.clear();
   display.display();
 
@@ -155,7 +175,7 @@ void setup() {
   display.setContrast(255);
 
   WiFi.begin(WIFI_SSID, WIFI_PWD);
-
+// run animation for wifi connect
   byte counter = 0;
   while (WiFi.status() != WL_CONNECTED)
   {
@@ -171,6 +191,9 @@ void setup() {
     counter++;
   }
 
+/***************************
+ Param BME280
+ **************************/
   //Set the I2C address of your breakout board  
   //Or ignore this, if you're using SPI Communication
 
@@ -255,6 +278,10 @@ void setup() {
   bme280.parameter.tempOutsideCelsius = 15;              //default value of 15°C
   //bme280.parameter.tempOutsideFahrenheit = 59;           //default value of 59°F
 
+/***************************
+ OTA Update
+ **************************/
+
   ArduinoOTA.onStart([]() {
   String type;
   if (ArduinoOTA.getCommand() == U_FLASH) {
@@ -289,6 +316,11 @@ void setup() {
   Serial.println("Ready");
   Serial.print("IP address: ");
   Serial.println(WiFi.localIP());
+
+  /***************************
+  Start OLED UI
+ **************************/
+
   // Get time from network time service
   configTime(TZ_SEC, DST_SEC, "pool.ntp.org");
 
@@ -322,38 +354,29 @@ void setup() {
 }
 
 void measure_and_visible()
-{
-     Serial.print(F("Duration in Seconds:\t\t"));
-   Serial.println(float(millis())/1000);
- 
+{  
+    dtostrf(bme280.readTempC(),4,2,measures[0]);
+    dtostrf(bme280.readHumidity(),4,2,measures[1]);
+    dtostrf(bme280.readPressure(),6,2,measures[2]);
+    dtostrf(bme280.readAltitudeMeter(),6,2,measures[3]);
+
    Serial.print(F("Temperature in Celsius:\t\t")); 
-   Serial.println(bme280.readTempC());
- 
-   Serial.print(F("Temperature in Fahrenheit:\t")); 
-   Serial.println(bme280.readTempF());
-   
+   Serial.println(measures[0]);
+  
    Serial.print(F("Humidity in %:\t\t\t")); 
-   Serial.println(bme280.readHumidity());
+   Serial.println(measures[1]);
 
    Serial.print(F("Pressure in hPa:\t\t")); 
-   Serial.println(bme280.readPressure());
+   Serial.println(measures[2]);
 
    Serial.print(F("Altitude in Meters:\t\t")); 
-   Serial.println(bme280.readAltitudeMeter());
-
-   Serial.print(F("Altitude in Feet:\t\t")); 
-   Serial.println(bme280.readAltitudeFeet());
+   Serial.println(measures[3]);
    
-   Serial.println();
-   Serial.println();
-
-   delay(1000);   
- 
+   Serial.println(); 
 }
 
 void printDirectory(File dir, int numTabs) {
   while (true) {
-
     File entry =  dir.openNextFile();
     if (! entry) {
       // no more files
@@ -364,7 +387,7 @@ void printDirectory(File dir, int numTabs) {
     }
     Serial.print(entry.name());
     if (entry.isDirectory()) {
-      Serial.println("/");
+      Serial.println(F("/"));
       printDirectory(entry, numTabs + 1);
     } else {
       // files have sizes, directories do not
@@ -377,7 +400,7 @@ void printDirectory(File dir, int numTabs) {
 
 void loop() 
 {
-
+//start OTA
   ArduinoOTA.handle();
 
   if (millis() - timeSinceLastWUpdate > (1000L*UPDATE_INTERVAL_SECS)) 
@@ -398,9 +421,22 @@ void loop()
     // You can do some work here
     // Don't do stuff if you are below your
     // time budget.
+//  Serial.println(millis());
     delay(remainingTimeBudget);
   }
+    if (millis() - timeSinceLastWUpdate > (1000*60*10)) 
+  {
+    timeSinceLastWUpdate = millis();
+    Serial.println(millis());
+    logs();
+  }
+  //update timers for logs
 }
+
+
+/***************************
+ * Draw progress update
+ **************************/
 
 void drawProgress(OLEDDisplay *display, int percentage, String label)
 {
@@ -411,6 +447,10 @@ void drawProgress(OLEDDisplay *display, int percentage, String label)
   display->drawProgressBar(2, 28, 124, 10, percentage);
   display->display();
 }
+
+/***************************
+ * Update data and weather
+ **************************/
 
 void updateData(OLEDDisplay *display)
 {
@@ -431,7 +471,9 @@ void updateData(OLEDDisplay *display)
   delay(1000);
 }
 
-
+/***************************
+ * draw Date && Time on widget 
+ **************************/
 
 void drawDateTime(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int16_t y)
 {
@@ -454,6 +496,10 @@ void drawDateTime(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, in
   display->setTextAlignment(TEXT_ALIGN_LEFT);
 }
 
+/***************************
+ * draw current weather in second widget 
+ **************************/
+
 void drawCurrentWeather(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int16_t y)
 {
   display->setFont(ArialMT_Plain_10);
@@ -470,6 +516,9 @@ void drawCurrentWeather(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t
   display->drawString(32 + x, 0 + y, currentWeather.iconMeteoCon);
 }
 
+/***************************
+ * draw forecast weather in third widget 
+ **************************/
 
 void drawForecast(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int16_t y)
 {
@@ -477,6 +526,10 @@ void drawForecast(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, in
   drawForecastDetails(display, x + 44, y, 1);
   drawForecastDetails(display, x + 88, y, 2);
 }
+
+/***************************
+ *  system display settings function for third widget
+ **************************/
 
 void drawForecastDetails(OLEDDisplay *display, int x, int y, int dayIndex)
 {
@@ -494,6 +547,10 @@ void drawForecastDetails(OLEDDisplay *display, int x, int y, int dayIndex)
   display->drawString(x + 20, y + 34, temp);
   display->setTextAlignment(TEXT_ALIGN_LEFT);
 }
+
+/***************************
+ * draw line and time&&weather under line
+ **************************/
 
 void drawHeaderOverlay(OLEDDisplay *display, OLEDDisplayUiState* state)
  {
@@ -513,6 +570,10 @@ void drawHeaderOverlay(OLEDDisplay *display, OLEDDisplayUiState* state)
   display->drawHorizontalLine(0, 52, 128);
 }
 
+/***************************
+ *  system display settings function for fourth widget
+ **************************/
+
 void drawBME280(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int16_t y)
 { 
   
@@ -521,7 +582,7 @@ void drawBME280(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int1
   timeInfo = localtime(&now);
   char buff[14];
   sprintf_P(buff, PSTR("%02d:%02d"), timeInfo->tm_hour, timeInfo->tm_min);
-
+  
   display->setColor(WHITE);
   display->setFont(ArialMT_Plain_10);
   display->setTextAlignment(TEXT_ALIGN_LEFT);
@@ -534,8 +595,33 @@ void drawBME280(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int1
 
 }
 
+/***************************
+ * flag for update weather
+ **************************/
+
 void setReadyForWeatherUpdate()
 {
   Serial.println("Setting readyForUpdate to true");
   readyForWeatherUpdate = true;
 }
+
+/***************************
+  start logs
+ **************************/
+
+void logs() 
+{  
+  Serial.println("Logg status");
+  now = time(nullptr);
+  struct tm* timeInfo;
+  timeInfo = localtime(&now);
+  char buff[50];
+  // log measure_bme280,date,time and date
+  sprintf_P(buff, PSTR("%s, %02d/%02d/%04d"), WDAY_NAMES[timeInfo->tm_wday].c_str(), timeInfo->tm_mday, timeInfo->tm_mon+1, timeInfo->tm_year + 1900,measures[0],measures[1],measures[2],measures[3]);
+
+  root = SD.open("data.txt",FILE_WRITE);
+  root.write(buff,45);
+  root.close();
+//print measures and time/
+  }
+

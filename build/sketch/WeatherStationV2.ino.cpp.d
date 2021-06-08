@@ -177,6 +177,14 @@ d:\projects\WeatherStationV2\build\sketch\WeatherStationV2.ino.cpp.o: \
  C:\Users\Alv_Breg\AppData\Local\Arduino15\packages\esp8266\hardware\esp8266\2.7.4\libraries\ESP8266SdFat\src/FatLib/FatFileSystem.h \
  C:\Users\Alv_Breg\AppData\Local\Arduino15\packages\esp8266\hardware\esp8266\2.7.4\libraries\ESP8266SdFat\src/FatLib/StdioStream.h \
  C:\Users\Alv_Breg\AppData\Local\Arduino15\packages\esp8266\hardware\esp8266\2.7.4\libraries\ESP8266SdFat\src/SdCard/SdioCard.h \
+ C:\Users\Alv_Breg\AppData\Local\Arduino15\packages\esp8266\hardware\esp8266\2.7.4\libraries\ESP8266SdFat\src/sdios.h \
+ C:\Users\Alv_Breg\AppData\Local\Arduino15\packages\esp8266\hardware\esp8266\2.7.4\libraries\ESP8266SdFat\src/FatLib/fstream.h \
+ C:\Users\Alv_Breg\AppData\Local\Arduino15\packages\esp8266\hardware\esp8266\2.7.4\libraries\ESP8266SdFat\src/FatLib/iostream.h \
+ C:\Users\Alv_Breg\AppData\Local\Arduino15\packages\esp8266\hardware\esp8266\2.7.4\libraries\ESP8266SdFat\src/FatLib/istream.h \
+ C:\Users\Alv_Breg\AppData\Local\Arduino15\packages\esp8266\hardware\esp8266\2.7.4\libraries\ESP8266SdFat\src/FatLib/ios.h \
+ C:\Users\Alv_Breg\AppData\Local\Arduino15\packages\esp8266\hardware\esp8266\2.7.4\libraries\ESP8266SdFat\src/FatLib/ostream.h \
+ C:\Users\Alv_Breg\AppData\Local\Arduino15\packages\esp8266\hardware\esp8266\2.7.4\libraries\ESP8266SdFat\src/FatLib/ArduinoStream.h \
+ C:\Users\Alv_Breg\AppData\Local\Arduino15\packages\esp8266\hardware\esp8266\2.7.4\libraries\ESP8266SdFat\src/FatLib/bufstream.h \
  C:\Users\Alv_Breg\AppData\Local\Arduino15\packages\esp8266\hardware\esp8266\2.7.4/tools/sdk/libc/xtensa-lx106-elf/include/time.h \
  C:\Users\Alv_Breg\AppData\Local\Arduino15\packages\esp8266\hardware\esp8266\2.7.4\cores\esp8266/coredecls.h \
  C:\Users\Alv_Breg\AppData\Local\Arduino15\packages\esp8266\hardware\esp8266\2.7.4\cores\esp8266/cont.h \
